@@ -7,14 +7,16 @@ import com.makkras.task2.entity.Turnover;
 import com.makkras.task2.exception.ParsingException;
 import com.makkras.task2.parser.CustomFileParser;
 import com.makkras.task2.util.UtilService;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellType;
-import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -22,6 +24,7 @@ import java.util.List;
 
 @Service
 public class XlsFileParser implements CustomFileParser {
+    private static final String FILE_FOR_DB_DATA_IMPORT = "C:\\task2\\DataFromServer.xls";
     private UtilService utilService;
     public XlsFileParser(UtilService utilService) {
         this.utilService = utilService;
@@ -100,6 +103,37 @@ public class XlsFileParser implements CustomFileParser {
             return new FileContent(excelFile.getOriginalFilename(),dataList);
         } catch (IOException exception) {
             throw new ParsingException(exception.getMessage());
+        }
+    }
+    public void parseDataIntoFile(List<Data> dataFromAllFiles) throws ParsingException {
+        try (FileOutputStream fileOutputStream = new FileOutputStream(FILE_FOR_DB_DATA_IMPORT)){
+            HSSFWorkbook workbook = new HSSFWorkbook();
+            HSSFSheet sheet = workbook.createSheet("ServerData");
+            int rowCounter = 0;
+            Row row = sheet.createRow(rowCounter);
+            row.createCell(0,CellType.STRING).setCellValue("Б/сч");
+            row.createCell(1,CellType.STRING).setCellValue("Актив");
+            row.createCell(2,CellType.STRING).setCellValue("Пассив");
+            row.createCell(3,CellType.STRING).setCellValue("Дебит");
+            row.createCell(4,CellType.STRING).setCellValue("Кредит");
+            row.createCell(5,CellType.STRING).setCellValue("Актив");
+            row.createCell(6,CellType.STRING).setCellValue("Пассив");
+            rowCounter++;
+            for(Data dataRow : dataFromAllFiles) {
+                row = sheet.createRow(rowCounter);
+                row.createCell(0,CellType.NUMERIC).setCellValue(dataRow.getBch());
+                row.createCell(1,CellType.NUMERIC).setCellValue(dataRow.getIncomingBalance().getActive().doubleValue());
+                row.createCell(2,CellType.NUMERIC).setCellValue(dataRow.getIncomingBalance().getPassive().doubleValue());
+                row.createCell(3,CellType.NUMERIC).setCellValue(dataRow.getCurrentTurnover().getDebit().doubleValue());
+                row.createCell(4,CellType.NUMERIC).setCellValue(dataRow.getCurrentTurnover().getCredit().doubleValue());
+                row.createCell(5,CellType.NUMERIC).setCellValue(dataRow.getOutcomingBalance().getActive().doubleValue());
+                row.createCell(6,CellType.NUMERIC).setCellValue(dataRow.getOutcomingBalance().getPassive().doubleValue());
+                rowCounter++;
+            }
+            workbook.write(fileOutputStream);
+            workbook.close();
+        } catch (IOException e) {
+            throw new ParsingException();
         }
     }
 }
